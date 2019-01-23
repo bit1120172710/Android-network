@@ -30,6 +30,10 @@ public class Feed {
         @SerializedName("user_name") private String user_name;
         @SerializedName("image_url") private String image_url;
         @SerializedName("video_url") private String video_url;
-
+@Override
+    public String toString()
+{
+    return this.student_id+this.video_url;
+}
     // TODO-C2 (1) Implement your Feed Bean here according to the response json
 }

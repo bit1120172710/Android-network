@@ -12,11 +12,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.bytedance.android.lesson.restapi.solution.bean.Cat;
 import com.bytedance.android.lesson.restapi.solution.bean.Feed;
 import com.bytedance.android.lesson.restapi.solution.bean.FeedResponse;
+import com.bytedance.android.lesson.restapi.solution.bean.PostVideoResponse;
 import com.bytedance.android.lesson.restapi.solution.newtork.ICatService;
 import com.bytedance.android.lesson.restapi.solution.newtork.IMiniDouyinService;
 import com.bytedance.android.lesson.restapi.solution.utils.ResourceUtils;
@@ -33,6 +35,7 @@ import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
+import retrofit2.http.Multipart;
 
 public class Solution2C2Activity extends AppCompatActivity {
 
@@ -106,11 +109,20 @@ public class Solution2C2Activity extends AppCompatActivity {
     }
 
     public void chooseImage() {
+        Intent intent=new Intent();
+        intent.setType("image/*");
+        intent.setAction(Intent.ACTION_GET_CONTENT);
+        startActivityForResult(Intent.createChooser(intent, "Select Picture"),PICK_IMAGE);
         // TODO-C2 (4) Start Activity to select an image
     }
 
 
     public void chooseVideo() {
+        Intent intent=new Intent();
+        intent.setType("video/*");
+        intent.setAction(Intent.ACTION_GET_CONTENT);
+        startActivityForResult(Intent.createChooser(intent, "Select Video"),PICK_VIDEO);
+
         // TODO-C2 (5) Start Activity to select a video
     }
 
@@ -138,12 +150,30 @@ public class Solution2C2Activity extends AppCompatActivity {
         // if NullPointerException thrown, try to allow storage permission in system settings
         File f = new File(ResourceUtils.getRealPath(Solution2C2Activity.this, uri));
         RequestBody requestFile = RequestBody.create(MediaType.parse("multipart/form-data"), f);
+        Log.d("aaaa", "getMultipartFromUri: "+name);
         return MultipartBody.Part.createFormData(name, f.getName(), requestFile);
     }
 
     private void postVideo() {
         mBtn.setText("POSTING...");
         mBtn.setEnabled(false);
+        postResponseWithRetrofitAsync(new Callback<PostVideoResponse>() {
+            @Override public void onResponse(Call<PostVideoResponse> call, Response<PostVideoResponse> response) {
+              if(response.body().isStatus()) {
+                  Toast.makeText(Solution2C2Activity.this, "上传成功", Toast.LENGTH_SHORT).show();
+                  mBtn.setText("SELECT AN IMAGE");
+                  mBtn.setEnabled(true);
+              }else
+              {
+                  Log.d("aaaaa", "onResponse: "+response.body().isStatus()+"\n"+response.body().getFeeds().toString());
+              }
+            }
+
+            @Override public void onFailure(Call<PostVideoResponse> call, Throwable t) {
+                //Toast.makeText(MainActivity.this.getApplicationContext(), t.getMessage(), Toast.LENGTH_LONG).show();
+
+            }
+        });
 
         // TODO-C2 (6) Send Request to post a video with its cover image
         // if success, make a text Toast and show
@@ -170,7 +200,17 @@ public class Solution2C2Activity extends AppCompatActivity {
         // if success, assign data to mFeeds and call mRv.getAdapter().notifyDataSetChanged()
         // don't forget to call resetRefreshBtn() after response received
     }
-    public static void getResponseWithRetrofitAsync(Callback<FeedResponse> callback) {
+    public void postResponseWithRetrofitAsync(Callback<PostVideoResponse> callback) {
+        Retrofit retrofit = new Retrofit.Builder()
+                .baseUrl(" http://10.108.10.39:8080/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+        MultipartBody.Part par1=getMultipartFromUri("cover_image",mSelectedImage);
+        MultipartBody.Part par2=getMultipartFromUri("video",mSelectedVideo);
+        retrofit.create(IMiniDouyinService.class).createVideo("顾骁","1120172710",par1,par2).
+                enqueue(callback);
+    }
+    public void getResponseWithRetrofitAsync(Callback<FeedResponse> callback) {
         Retrofit retrofit = new Retrofit.Builder()
                 .baseUrl(" http://10.108.10.39:8080/")
                 .addConverterFactory(GsonConverterFactory.create())
